@@ -1,11 +1,8 @@
 import sys
 from struct import pack, unpack
+from constantes import ORDEM, TAM_CAB, TAM_PAG, CAMINHO_BTREE
 
-#variaveis globais
-ORDEM = 5
-TAM_CAB = 4
-TAM_PAG = 128
-arquivoArvores = 'arvore.bin'
+arquivoArvores = CAMINHO_BTREE
 
 
 #outras funcoes pra usar essas auxiliares
@@ -22,6 +19,37 @@ class Pagina:
         self.chaves = [-1] * (ORDEM - 1)
         self.offsets = [-1] * (ORDEM - 1) 
         self.filhos = [-1] * ORDEM
+
+    #monta o formato do struct: numChaves + chaves + offsets + filhos, tudo "i" (4 bytes com sinal)
+    def __formato_struct(self):
+        qtd_campos = 1 + (ORDEM - 1) + (ORDEM - 1) + ORDEM
+        return f"<{qtd_campos}i"
+
+    #serializa a pagina pra bytes, no tamanho fixo TAM_PAG, pra escrever no arquivo
+    def to_bytes(self):
+        return pack(
+            self.__formato_struct(),
+            self.numChaves,
+            *self.chaves,
+            *self.offsets,
+            *self.filhos,
+        )
+
+    #desserializa os bytes lidos do arquivo de volta pra um objeto Pagina
+    @staticmethod
+    def from_bytes(dados_bytes):
+        pag = Pagina()
+        valores = unpack(pag.__formato_struct(), dados_bytes)
+
+        pag.numChaves = valores[0]
+        i = 1
+        pag.chaves = list(valores[i : i + (ORDEM - 1)])
+        i += ORDEM - 1
+        pag.offsets = list(valores[i : i + (ORDEM - 1)])
+        i += ORDEM - 1
+        pag.filhos = list(valores[i : i + ORDEM])
+
+        return pag
 
 
 def buscaNaArvore(chave, rrn):
@@ -195,4 +223,4 @@ def principal():
             raiz = insereNaArvore(chave, raiz)
         arqArvb.seek(0)
         #escreve o RRN da raiz no cabecalho
-        arqArvb.write(raiz.to_bytes(TAM_CAB, byteorder='big'))        
+        arqArvb.write(raiz.to_bytes(TAM_CAB, byteorder='big'))
