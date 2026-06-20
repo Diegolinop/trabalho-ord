@@ -4,9 +4,6 @@ from constantes import ORDEM, TAM_CAB, TAM_PAG, CAMINHO_BTREE
 
 arquivoArvores = CAMINHO_BTREE
 
-
-#outras funcoes pra usar essas auxiliares
-
 def novoRRN():
     with open(arquivoArvores, 'ab') as arq:
         arq.seek(0, 2)  #fim do arq
@@ -128,14 +125,14 @@ def lerPagina(rrn):
         arq.seek(offset)
         #le os bytes da pagina
         pag_bytes = arq.read(TAM_PAG)
-        #devolve os bytes lidos
-        return pag_bytes
+        #desserializa os bytes pro objeto Pagina e devolve
+        return Pagina.from_bytes(pag_bytes)
 
-def escrevePagina(rrn, pag_bytes):
+def escrevePagina(rrn, pag):
     offset = rrn * TAM_PAG + TAM_CAB
     with open(arquivoArvores, 'r+b') as arq:
         arq.seek(offset)  # vai para a posicao da pagina
-        arq.write(pag_bytes)  # escreve os bytes da pagina
+        arq.write(pag.to_bytes())  # serializa e escreve os bytes da pagina
 
 def insereChavePromo(chave, filhoD, pag):
     #se a pagina tiver cheia, coloca mais um espaco pra chave e pro filho
