@@ -4,12 +4,6 @@ from constantes import ORDEM, TAM_CAB, TAM_PAG, CAMINHO_BTREE
 
 arquivoArvores = CAMINHO_BTREE
 
-def novoRRN():
-    with open(arquivoArvores, 'ab') as arq:
-        arq.seek(0, 2)  #fim do arq
-        offset = arq.tell()  #tamanho do arq
-        return (offset - TAM_CAB) // TAM_PAG  #rrn da nova pagina
-
 class Pagina:
     def __init__(self):
         self.numChaves = 0
