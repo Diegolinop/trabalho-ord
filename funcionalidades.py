@@ -74,9 +74,57 @@ def buscarId(chave_buscada):
     return
 
 #-e (INSERCAO)
-def inserirJogo():
-    return
+def inserirJogo(arg):
+    chave = int(arg.split('|')[0])
+    print(f'Inserção do registro de chave "{chave}"')
+
+    with open(CAMINHO_BTREE, 'rb') as arqArvb:
+        raiz = int.from_bytes(arqArvb.read(TAM_CAB), byteorder='little', signed=True)
+
+    achou, rrn, pos = buscaNaArvore(chave, raiz)
+    if achou:
+        print(f'Erro: chave "{chave}" duplicada')
+        return
+
+    registro = arg.encode('utf-8')
+    tam = len(registro)
+    with open(CAMINHO_JOGOS, 'ab') as arqJogos:
+        offset = arqJogos.tell()
+        arqJogos.write(tam.to_bytes(2, byteorder='little'))
+        arqJogos.write(registro)
+
+    raiz, _ = insereNaArvore(chave, offset, raiz)
+    with open(CAMINHO_BTREE, 'r+b') as arqArvb:
+        arqArvb.seek(0)
+        arqArvb.write(raiz.to_bytes(TAM_CAB, byteorder='little', signed=True))
+
+    print(f'{arg} ({tam} bytes - offset {offset})')
 
 #-p (IMPRIMIR)
 def imprimir():
-    return
+    try:
+        with open(CAMINHO_BTREE, 'rb') as arqArvb:
+            raiz = int.from_bytes(arqArvb.read(TAM_CAB), byteorder='little', signed=True)
+            arqArvb.seek(0, 2)
+            tamArq = arqArvb.tell()
+    except FileNotFoundError:
+        print(f'Erro: Arquivo "{CAMINHO_BTREE}" nao encontrado')
+        return
+
+    numPaginas = (tamArq - TAM_CAB) // TAM_PAG
+
+    for rrn in range(numPaginas):
+        pag = lerPagina(rrn)
+        ehRaiz = (rrn == raiz)
+
+        if ehRaiz:
+            print('- ' * 10 + 'Raiz' + ' -' * 10)
+
+        print(f'Página {rrn}:')
+        print('Chaves = ' + ' | '.join(str(c) for c in pag.chaves))
+        print('Offsets = ' + ' | '.join(str(o) for o in pag.offsets))
+        print('Filhos = ' + ' | '.join(str(f) for f in pag.filhos))
+
+        if ehRaiz:
+            print('- ' * 17)
+        print()
