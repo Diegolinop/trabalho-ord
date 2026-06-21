@@ -19,6 +19,8 @@ def main():
             with open(sys.argv[2], 'r') as arq:
                 for linha in arq:
                     linha = linha.strip()
+                    if not linha:
+                        continue
                     #coloquei o maxsplit = 1 pra separar no comando e no resto da linha
                     operacao = linha.split(maxsplit = 1) 
                     if operacao[0] == "b":
