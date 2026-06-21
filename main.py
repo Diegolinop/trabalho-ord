@@ -25,7 +25,7 @@ def main():
                         buscarId(operacao[1])
                     elif operacao[0] == "i":
                         inserirJogo(operacao[1])
-            print(f'As operações do arquivo "{nome_arquivo}" foram executadas com sucesso! ')
+            print(f'As operações do arquivo "{nome_arquivo}" foram executadas com sucesso!')
         except FileNotFoundError:
             print(f'Erro: Arquivo "{sys.argv[2]}" nao encontrado')
             

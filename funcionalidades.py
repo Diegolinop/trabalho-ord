@@ -118,7 +118,7 @@ def imprimir():
         ehRaiz = (rrn == raiz)
 
         if ehRaiz:
-            print('\n' + '- ' * 10 + 'Raiz' + ' -' * 10)
+            print('- ' * 10 + 'Raiz' + ' -' * 10)
 
         print(f'Página {rrn}:')
         print('Chaves = ' + ' | '.join(str(c) for c in pag.chaves))
