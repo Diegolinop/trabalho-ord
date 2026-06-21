@@ -73,14 +73,11 @@ def buscaNaPagina(chave, pag):
         #nao achou, devole a posicao aonde devia estar
         return False, pos
 
-def insereChave(chave, rrnAtual):
+def insereChave(chave, offset, rrnAtual):
     if rrnAtual == -1:
-        #pega a chave que vai ser promovida
-        chavePro = chave
-        #rrn do filho direito da chave promovida que nao existe ainda
-        filhoDpro = -1
-        #devolve a confirmacao da promocao
-        return chavePro, filhoDpro, True
+        #caso base: no folha acessnado um no que nao existe
+        #dai vai retornar a chave, o offset e true que vai promover
+        return chave, offset, -1, True
     else:
         #le a pagina
         pag = lerPagina(rrnAtual)
@@ -89,29 +86,35 @@ def insereChave(chave, rrnAtual):
         
     if achou:
         return "Erro: chave duplicada"
-    #insere dai na pagina filha aonde a chave devia estar
-    chavePro, filhoDpro, promo = insereChave(chave, pag.filhos[pos])
 
-    #se nao promoveu retorna nada
+    #recursao pra descer ate o filho certo
+    desce = insereChave(chave, offset, pag.filhos[pos])
+    if desce == "Erro: chave duplicada":
+        return desce
+    #adiciona as info nas variaveis pra inserir depois a chave promovida
+    chavePro, offsetPro, filhoDpro, promo = desce
+
+    #se nao promoveu(já inseriu em baixo) retorna nada
     if not promo:
-        return -1, -1, False
+        return -1, -1, -1, False
     else:
         #se tiver espaco na pagina (por isso o ORDEM -1)
         if pag.numChaves < (ORDEM - 1):
             #coloca a chave promovida na pagina
-            insereNaPagina(pag, chavePro, filhoDpro)
+            insereChavePromo(chavePro, offsetPro, filhoDpro, pag)
             #escreve no arquivo
             escrevePagina(rrnAtual, pag)
-            #e devolve que nao teve promocao
-            return -1, -1, False
+            #e devolve que nao vai ter mais promocao
+            return -1, -1, -1, False
         else:
             #dai se tiver cheia divide a pagina e pega a do meio pra promover
-            chavePro, filhoDpro, pag, novaPag = dividePagina(chavePro, filhoDpro, pag)
+            chavePro, offsetPro, filhoDpro, pag, novaPag = dividePagina(chavePro, offsetPro, filhoDpro, pag)
+            #metade esquerda
             escrevePagina(rrnAtual, pag)
-            #escreve a pag nova no arquivo com o rrn novo
+            #metae direita com o rrn novo
             escrevePagina(filhoDpro, novaPag)
             #e devolve a chave promovida e o rrn do filho direito
-            return chavePro, filhoDpro, True
+            return chavePro, offsetPro, filhoDpro, True
 
 def lerPagina(rrn):
     offset = rrn * TAM_PAG + TAM_CAB
@@ -128,36 +131,60 @@ def escrevePagina(rrn, pag):
         arq.seek(offset)  # vai para a posicao da pagina
         arq.write(pag.to_bytes())  # serializa e escreve os bytes da pagina
 
-def insereChavePromo(chave, filhoD, pag):
+def insereChavePromo(chave, offset, filhoD, pag):
     #se a pagina tiver cheia, coloca mais um espaco pra chave e pro filho
     if pag.numChaves == (ORDEM - 1):
         pag.chaves.append(-1)
+        pag.offsets.append(-1)
         pag.filhos.append(-1)
     
     i = pag.numChaves
     #vai movendo as chaves e os filhos pra direita ate achar a posicao certa
     while i > 0 and chave < pag.chaves[i - 1]:
-        #move a chave uma pra direita
+        #move as chaves, os offsets e os filhos uma pra direita
         pag.chaves[i] = pag.chaves[i - 1]
-        #move o filho uma pra direita
         pag.filhos[i + 1] = pag.filhos[i]
+        pag.offsets[i] = pag.offsets[i-1]
         i -= 1
+    #escreve na posicao livre
     pag.chaves[i] = chave
+    pag.offsets[i] = offset
+    #pega o * do filho da direita que subiu tambem
     pag.filhos[i + 1] = filhoD
+    #aumenta num de chaves
     pag.numChaves += 1
 
-def dividePagina(chave, filhoD, pag):
+def dividePagina(chave, offset, filhoD, pag):
     #coloca a chave promovida na pagina cheia
-    pag = insereChavePromo(chave, filhoD, pag)
+    insereChavePromo(chave, offset, filhoD, pag)
     meio = ORDEM // 2
+
     #promove a chave do meio da pagina
     chavePro = pag.chaves[meio]
+    offsetPro = pag.offsets[meio]
     #pega o rrn novo da pagina que vai ser criada
     filhoDpro = novoRRN()
-    #a pagina atual pega do comeco ate o meio e a nova do meio ate ofinal   
-    pAtual = pag[:meio]
-    pNova = pag[meio + 1:]
-    return chavePro, filhoDpro, pAtual, pNova
+
+    #cria uma nova pagina e coloca metade das chaves nela
+    pAtual = Pagina() 
+    pAtual.numChaves = meio
+    for i in range(meio):
+        pAtual.chaves[i] = pag.chaves[i]
+        pAtual.offsets[i] = pag.offsets[i]
+        pAtual.filhos[i] = pag.filhos[i]
+    pAtual.filhos[meio] = pag.filhos[meio] #dai o meio dos filhos da pAtual vai ser o filho da direita da ultima chave da primeira metade da pag
+
+    #outra pagina com a outra metade tirando 1(o do meio que subiu)
+    pNova = Pagina()
+    pNova.numChaves = pag.numChaves - meio - 1
+    for i in range(pNova.numChaves):
+        pNova.chaves[i] = pag.chaves[meio + 1 + i]
+        pNova.offsets[i] = pag.offsets[meio + 1 + i]
+        pNova.filhos[i] = pag.filhos[meio + 1 + i]
+    pNova.filhos[pNova.numChaves] = pag.filhos[pag.numChaves]
+
+    #returna a chave que subiu e as duas metades
+    return chavePro, offsetPro, filhoDpro, pAtual, pNova
 
 def novoRRN():
     with open(arquivoArvores, 'ab') as arq:
@@ -166,14 +193,19 @@ def novoRRN():
         offset = arq.tell()
         return (offset - TAM_CAB) // TAM_PAG
 
-def insereNaArvore(chave, rrnRaiz):
-    #coloca a chave na rai e ve se promoveu ou nao
-    chavePro, filhoDpro, promo = insereChave(chave, rrnRaiz)
-    #se promoveu cria uma nova raiz
+def insereNaArvore(chave, offset, rrnRaiz):
+    #chama a recursao com a raiz pra ver se ta inserindo chave que ja existe
+    desce = insereChave(chave, offset, rrnRaiz)
+    if desce == "Erro: chave duplicada":
+        return rrnRaiz, False
+    
+    chavePro, offsetPro,filhoDpro, promo = desce
+
     if promo:
         pNova = Pagina()
         #a chave promovida vai pras chaves da raiz nova
         pNova.chaves[0] = chavePro
+        pNova.offsets[0] = offsetPro
         #a raiz antiga vira o filho esquerdo da raiz nova
         pNova.filhos[0] = rrnRaiz
         #e o filho direito da chave promovida vira o filho direito 
@@ -184,34 +216,6 @@ def insereNaArvore(chave, rrnRaiz):
         rrnNovaRaiz = novoRRN()
         #escreve a nova raiz no arquivo
         escrevePagina(rrnNovaRaiz, pNova)
-        return rrnNovaRaiz
+        return rrnNovaRaiz, True
 
-    return rrnRaiz
-
-def principal():
-    try:
-        with open(arquivoArvores, 'r+b') as arqArvb:
-            #le o cabecalho que é o rrn da raiz
-            raiz_bytes = arqArvb.read(TAM_CAB)
-            #transforma os bytes em inteiro
-            raiz = int.from_bytes(raiz_bytes, byteorder='big')
-    except:
-        with open(arquivoArvores, 'wb') as arqArvb:
-            raiz = 0
-            raiz_bytes = raiz.to_bytes(TAM_CAB, byteorder='big')
-            #escreve a raiz no cabecalho 
-            arqArvb.write(raiz_bytes)
-            #cria a pag da raiz vazia
-            pag = Pagina()
-            #escreve a pagina vazia no arquivo
-            arqArvb.write(pag.to_bytes())
-    
-    #abre o arquivo pra inserir as chaves
-    with open(arquivoArvores, 'r+b') as arqArvb:
-        for chave in chaves:
-            #insere a chave na arvore e se tiver promocao cria nova raiz
-            #dai tem que atualizar o rrn no cabecalho
-            raiz = insereNaArvore(chave, raiz)
-        arqArvb.seek(0)
-        #escreve o RRN da raiz no cabecalho
-        arqArvb.write(raiz.to_bytes(TAM_CAB, byteorder='big'))
+    return rrnRaiz, True
