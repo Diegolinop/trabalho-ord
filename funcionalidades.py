@@ -15,11 +15,12 @@ def criarIndice():
             final = False
             while not final:
                 offset = arqJogos.tell() #pega o offset pra salvar na arvore
-                tam_bytes = arqJogos.read(1) #le o tamanho do arq
+                tam_bytes = arqJogos.read(2) #le o tamanho do arq
                 if not tam_bytes:
                     final = True
+                    continue
 
-                tam = tam_bytes[0] #tamanho do reg
+                tam = int.from_bytes(tam_bytes, byteorder='little')
                 linha_bytes = arqJogos.read(tam)
                 linha = linha_bytes.decode('utf-8')
                 chave = int(linha.split('|')[0])
@@ -41,7 +42,7 @@ def criarIndice():
 
 #-e (BUSCA)
 def buscarId(chave_buscada):
-    print(f'Busca pelo registro de chave "{chave_buscada}" ')
+    print(f'Busca pelo registro de chave "{chave_buscada}"')
     chave = int(chave_buscada)
 
     try:
@@ -60,11 +61,12 @@ def buscarId(chave_buscada):
             with open(CAMINHO_JOGOS, 'rb') as arqJogos:
                 arqJogos.seek(offset)
                 #pega o tamanho da string do jogo
-                tam = arqJogos.read(1)[0]
+                tam_bytes = arqJogos.read(2)
+                tam = int.from_bytes(tam_bytes, byteorder='little')
                 registro = arqJogos.read(tam).decode('utf-8')
                 print(f'{registro} ({tam} bytes - offset {offset})')
         else:
-            print(f'Erro: chave {chave_buscada} não encontrada')
+            print(f'Erro: chave "{chave_buscada}" não encontrada')
     except FileNotFoundError:
         print("Erro: Arquivos de dados ou arquivo de indice nao encontrados")
         sys.exit()
