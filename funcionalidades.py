@@ -33,11 +33,11 @@ def criarIndice():
             #pra escrever o rrn da raiz no cabecalho
             arqArvb.write(raiz.to_bytes(TAM_CAB, byteorder= 'little', signed= True))
 
-        print("Operação concluída com sucesso!")
+        print("Operação concluída com sucesso!\n")
         return
     
     except FileNotFoundError:
-        print(f'Erro: Arquivo "{CAMINHO_JOGOS}" nao foi encontrado')
+        print(f'Erro: Arquivo "{CAMINHO_JOGOS}" nao foi encontrado\n')
         return
 
 #-e (BUSCA)
@@ -64,11 +64,11 @@ def buscarId(chave_buscada):
                 tam_bytes = arqJogos.read(2)
                 tam = int.from_bytes(tam_bytes, byteorder='little')
                 registro = arqJogos.read(tam).decode('utf-8')
-                print(f'{registro} ({tam} bytes - offset {offset})')
+                print(f'{registro} ({tam} bytes - offset {offset})\n')
         else:
-            print(f'Erro: chave "{chave_buscada}" não encontrada')
+            print(f'Erro: chave "{chave_buscada}" não encontrada\n')
     except FileNotFoundError:
-        print("Erro: Arquivos de dados ou arquivo de indice nao encontrados")
+        print("Erro: Arquivos de dados ou arquivo de indice nao encontrados\n")
         sys.exit()
 
     return
@@ -83,7 +83,7 @@ def inserirJogo(arg):
 
     achou, rrn, pos = buscaNaArvore(chave, raiz)
     if achou:
-        print(f'Erro: chave "{chave}" duplicada')
+        print(f'Erro: chave "{chave}" duplicada\n')
         return
 
     registro = arg.encode('utf-8')
@@ -98,7 +98,7 @@ def inserirJogo(arg):
         arqArvb.seek(0)
         arqArvb.write(raiz.to_bytes(TAM_CAB, byteorder='little', signed=True))
 
-    print(f'{arg} ({tam} bytes - offset {offset})')
+    print(f'{arg} ({tam} bytes - offset {offset})\n')
 
 #-p (IMPRIMIR)
 def imprimir():
@@ -108,7 +108,7 @@ def imprimir():
             arqArvb.seek(0, 2)
             tamArq = arqArvb.tell()
     except FileNotFoundError:
-        print(f'Erro: Arquivo "{CAMINHO_BTREE}" nao encontrado')
+        print(f'Erro: Arquivo "{CAMINHO_BTREE}" nao encontrado\n')
         return
 
     numPaginas = (tamArq - TAM_CAB) // TAM_PAG
@@ -118,7 +118,7 @@ def imprimir():
         ehRaiz = (rrn == raiz)
 
         if ehRaiz:
-            print('- ' * 10 + 'Raiz' + ' -' * 10)
+            print('\n' + '- ' * 10 + 'Raiz' + ' -' * 10)
 
         print(f'Página {rrn}:')
         print('Chaves = ' + ' | '.join(str(c) for c in pag.chaves))
